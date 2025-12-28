@@ -35,13 +35,18 @@ def search_employees(field: SearchField, text: str):
     con.close()
     return [Employee.from_row(r) for r in rows]
 
+# repositories/employee_repository.py - FIXED
 def insert_employee(employee: Employee):
     con = _get_connection()
     cur = con.cursor()
     cur.execute("""
-        insert into employee(eid,name,email,gender,dob,joining,salary,password,dept,address,contact) 
-        values(?,?,?,?,?,?,?,?,?,?,?)
-    """, employee.__dict__.values())
+        INSERT INTO employee(eid,name,email,contact,gender,dob,doj,salary,password,utype,address) 
+        VALUES(?,?,?,?,?,?,?,?,?,?,?)
+    """, (
+        employee.eid, employee.name, employee.email, employee.contact,
+        employee.gender, employee.dob, employee.doj, employee.salary,
+        employee.password, employee.utype, employee.address
+    ))
     con.commit()
     con.close()
 
@@ -49,11 +54,17 @@ def update_employee(employee: Employee):
     con = _get_connection()
     cur = con.cursor()
     cur.execute("""
-        update employee set name=?,email=?,gender=?,dob=?,joining=?,salary=?,password=?,dept=?,address=?,contact=? 
-        where eid=?
-    """, list(employee.__dict__.values())[1:] + [employee.eid])
+        UPDATE employee SET 
+            name=?, email=?, contact=?, gender=?, dob=?, doj=?, salary=?,
+            password=?, utype=?, address=? WHERE eid=?
+    """, (
+        employee.name, employee.email, employee.contact, employee.gender,
+        employee.dob, employee.doj, employee.salary, employee.password,
+        employee.utype, employee.address, employee.eid
+    ))
     con.commit()
     con.close()
+
 
 def delete_employee(eid: str):
     con = _get_connection()

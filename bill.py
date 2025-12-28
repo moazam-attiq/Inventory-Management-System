@@ -237,18 +237,6 @@ class billClass:
         result=self.var_cal_input.get()
         self.var_cal_input.set(eval(result))
 
-    def show(self):
-        con=sqlite3.connect(database=r'ims.db')
-        cur=con.cursor()
-        try:
-            cur.execute("select pid,name,price,qty,status from product where status='Active'")
-            rows=cur.fetchall()
-            self.product_Table.delete(*self.product_Table.get_children())
-            for row in rows:
-                self.product_Table.insert('',END,values=row)
-        except Exception as ex:
-            messagebox.showerror("Error",f"Error due to : {str(ex)}")
-
     def search(self):
         con=sqlite3.connect(database=r'ims.db')
         cur=con.cursor()
@@ -289,32 +277,34 @@ class billClass:
         self.lbl_inStock.config(text=f"In Stock [{str(row[4])}]")
         self.var_stock.set(row[4])
         
-    def bill_update(self):
-        """**Long Method (1)** → 8 lines"""
-        try:
-            bill_amnt, discount, net_pay = BillingService.calculate_totals(self.cart_list)
-            self.lbl_amnt.config(text=f"Bill Amnt\n{bill_amnt}")
-            self.lbl_discount.config(text=f"Discount\n[5%]\n{discount}")
-            self.lbl_net_pay.config(text=f"Net Pay\n{net_pay}")
-            self.cartTitle.config(text=f"Cart \t Total Products: [{len(self.cart_list)}]")
-            self.bill_amnt = bill_amnt  # Keep for generate_bill
-            self.discount = discount
-            self.net_pay = net_pay
-        except Exception as ex:
-            messagebox.showerror("Error", str(ex), parent=self.root)
+    # ✅ DELETE the FIRST show() method (around line 450) - KEEP ONLY THIS ONE:
 
     def show(self):
-        """**Duplicated Code (13)** → Use product repo"""
+        """✅ FIXED: Uses repository correctly"""
         try:
-            rows = fetch_active_products_for_billing()  # Raw tuples for table
+            rows = fetch_active_products_for_billing()  # Raw tuples (pid,name,price,qty,status)
             self.product_Table.delete(*self.product_Table.get_children())
             for row in rows:
                 self.product_Table.insert('', END, values=row)
         except Exception as ex:
-            messagebox.showerror("Error", f"Error due to : {str(ex)}")
+            messagebox.showerror("Error", f"Products load failed: {str(ex)}", parent=self.root)
 
+    # ✅ ADD THIS MISSING METHOD - Cart display
+    def show_cart(self):
+        """✅ NEW: Displays cart_list in CartTable"""
+        try:
+            self.CartTable.delete(*self.CartTable.get_children())
+            for item in self.cart_list:
+                # CartItem → Table row (pid, name, price, qty)
+                self.CartTable.insert('', END, values=(
+                    item.pid, item.name, item.price, item.qty
+                ))
+        except Exception as ex:
+            messagebox.showerror("Error", f"Cart display failed: {str(ex)}", parent=self.root)
+
+    # ✅ FIXED: add_update_cart() - Calls show_cart()
     def add_update_cart(self):
-        """**Feature Envy (19)** → CartItem model"""
+        """✅ FIXED: CartItem + show_cart() call"""
         try:
             if self.var_pid.get() == "":
                 return messagebox.showerror("Error", "Please select product from the list", parent=self.root)
@@ -329,22 +319,61 @@ class billClass:
                 stock=int(self.var_stock.get())
             )
 
-            # Update or add to cart_list
             self._update_cart_list(cart_item)
-            self.bill_update()
+            self.show_cart()      # ✅ FIXED: SHOWS CART
+            self.bill_update()    # ✅ Updates totals
         except Exception as ex:
-            messagebox.showerror("Error", str(ex), parent=self.root)
+            messagebox.showerror("Error", f"Add to cart failed: {str(ex)}", parent=self.root)
 
     def _update_cart_list(self, item: CartItem):
-        """Extracted private method - **Long Method (1)**"""
+        """✅ MISSING METHOD - Updates cart_list with new item"""
+        # Check if item already exists
         for i, cart_item in enumerate(self.cart_list):
             if cart_item.pid == item.pid:
-                if item.qty == 0:
+                if item.qty == 0:  # Remove from cart
                     self.cart_list.pop(i)
-                else:
+                else:  # Update quantity
                     self.cart_list[i] = item
+                return  # Exit after update/remove
+        
+        # Add new item if not found
+        if item.qty > 0:
+            self.cart_list.append(item)
+
+    # ✅ FIXED: bill_update() - Handles empty cart
+    def bill_update(self):
+        try:
+            if not self.cart_list:
+                self.lbl_amnt.config(text="Bill Amnt\n[0]")
+                self.lbl_net_pay.config(text="Net Pay\n[0]")
+                self.cartTitle.config(text="Cart \t Total Products: [0]")
                 return
-        self.cart_list.append(item)
+                
+            bill_amnt, discount, net_pay = BillingService.calculate_totals(self.cart_list)
+            self.lbl_amnt.config(text=f"Bill Amnt\n{bill_amnt}")
+            self.lbl_discount.config(text=f"Discount\n[5%]\n{round(discount, 2)}")
+            self.lbl_net_pay.config(text=f"Net Pay\n{round(net_pay, 2)}")
+            self.cartTitle.config(text=f"Cart \t Total Products: [{len(self.cart_list)}]")
+            
+            self.bill_amnt = bill_amnt
+            self.discount = discount
+            self.net_pay = net_pay
+        except Exception as ex:
+            messagebox.showerror("Error", f"Billing update failed: {str(ex)}", parent=self.root)
+
+    # ✅ FIXED: clear_all() - Calls show_cart()
+    def clear_all(self):
+        self.cart_list.clear()  # ✅ Clear CartItem list
+        self.clear_cart()
+        self.show()             # Refresh products
+        self.show_cart()        # ✅ Refresh cart table
+        self.var_cname.set("")
+        self.var_contact.set("")
+        self.chk_print = 0
+        self.txt_bill_area.delete('1.0', END)
+        self.lbl_amnt.config(text="Bill Amnt\n[0]")
+        self.lbl_net_pay.config(text="Net Pay\n[0]")
+        self.var_search.set("")
 
     def generate_bill(self):
         """**Long Method (1)** → Orchestrates 3 small methods"""
@@ -375,20 +404,21 @@ class billClass:
             fp.write(self.txt_bill_area.get('1.0', END))
 
     def bill_top(self):
-        self.invoice=int(time.strftime("%H%M%S"))+int(time.strftime("%d%m%Y"))
-        bill_top_temp=f'''
+        """✅ FIXED: Use service-generated invoice"""
+        self.invoice = BillingService.generate_invoice_id()  # ✅ From service
+        bill_top_temp = f'''
 \t\tInventory-Management-System
 \t Email. 221400003@gift.edu.pk , Gujranwala
-{str("="*46)}
- Customer Name: {self.var_cname.get()}
- Ph. no. : {self.var_contact.get()}
- Bill No. {str(self.invoice)}\t\t\tDate: {str(time.strftime("%d/%m/%Y"))}
-{str("="*46)}
- Product Name\t\t\tQTY\tPrice
-{str("="*46)}
+{("="*46)}
+Customer Name: {self.var_cname.get()}
+Ph. no. : {self.var_contact.get()}
+Bill No. {self.invoice}\t\t\tDate: {time.strftime("%d/%m/%Y")}
+{("="*46)}
+Product Name\t\t\tQTY\tPrice
+{("="*46)}
 '''
-        self.txt_bill_area.delete('1.0',END)
-        self.txt_bill_area.insert('1.0',bill_top_temp)
+        self.txt_bill_area.delete('1.0', END)
+        self.txt_bill_area.insert('1.0', bill_top_temp)
 
     def bill_bottom(self):
         bill_bottom_temp=f'''
@@ -401,31 +431,30 @@ class billClass:
         self.txt_bill_area.insert(END,bill_bottom_temp)
 
     def bill_middle(self):
-        con=sqlite3.connect(database=r'ims.db')
-        cur=con.cursor()
+        con = sqlite3.connect(database='ims.db')
+        cur = con.cursor()
         try:
-            for row in self.cart_list:
-                pid=row[0]
-                name=row[1]
-                qty=int(row[4])-int(row[3])
-                if int(row[3])==int(row[4]):
-                    status="Inactive"
-                if int(row[3])!=int(row[4]):
-                    status="Active"
-                price=float(row[2])*int(row[3])
-                price=str(price)
-                self.txt_bill_area.insert(END,"\n "+name+"\t\t\t"+row[3]+"\tRs."+price)
-                #------------- update qty in product table --------------
-                cur.execute("update product set qty=?,status=? where pid=?",(
-                    qty,
-                    status,
-                    pid
-                ))
-                con.commit()
+            for item in self.cart_list:
+                # ✅ CartItem ATTRIBUTES (not indices!)
+                pid = item.pid
+                name = item.name
+                qty_used = item.qty
+                new_stock = item.stock - qty_used
+                status = "Inactive" if new_stock <= 0 else "Active"
+                
+                # Bill line
+                line_total = item.price * qty_used
+                self.txt_bill_area.insert(END, f"\n {name}\t\t\t{qty_used}\tRs.{line_total}")
+                
+                # Update stock
+                cur.execute("UPDATE product SET qty=?, status=? WHERE pid=?", 
+                        (new_stock, status, pid))
+            
+            con.commit()
             con.close()
             self.show()
         except Exception as ex:
-            messagebox.showerror("Error",f"Error due to : {str(ex)}",parent=self.root)
+            messagebox.showerror("Error", f"Stock update failed: {str(ex)}", parent=self.root)
 
     def clear_cart(self):
         self.var_pid.set("")
@@ -433,18 +462,7 @@ class billClass:
         self.var_price.set("")
         self.var_qty.set("")
         self.lbl_inStock.config(text=f"In Stock")
-        self.var_stock.set("")
-
-    def clear_all(self):
-        del self.cart_list[:]
-        self.clear_cart()
-        self.show()
-        self.var_cname.set("")
-        self.var_contact.set("")
-        self.chk_print=0
-        self.txt_bill_area.delete('1.0',END)
-        self.cartTitle.config(text=f"Cart \t Total Products: [0]")
-        self.var_search.set("")
+        self.var_stock.set("")      
         
     def update_date_time(self):
         time_=time.strftime("%I:%M:%S")

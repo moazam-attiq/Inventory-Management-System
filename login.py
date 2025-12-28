@@ -104,7 +104,7 @@ class LoginWindow:
             cur = con.cursor()
 
             # Modify according to your table fields
-            cur.execute("SELECT * FROM employee WHERE email=? AND pass=?", (email, password))
+            cur.execute("SELECT * FROM employee WHERE email=? AND password=?", (email, password))
             row = cur.fetchone()
 
             if row:
