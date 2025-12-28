@@ -3,9 +3,9 @@ from tkinter import messagebox
 from PIL import Image, ImageTk
 import time
 import sqlite3
-from billing import billClass
-from dashboard import IMS
-
+from bill import billClass
+from ims import IMS
+from src.utils.clock import setup_clock
 
 class LoginWindow:
     def __init__(self, root):
@@ -86,19 +86,9 @@ class LoginWindow:
             fg="white"
         )
         lbl_footer.pack(side=BOTTOM, fill=X)
-        self.update_content()
 
     # ----------------- Update Time -----------------
-    def update_content(self):
-        con=sqlite3.connect(database=r'ims.db')
-        cur=con.cursor()
-        try:
-            time_=time.strftime("%I:%M:%S")
-            date_=time.strftime("%d-%m-%Y")
-            self.lbl_clock.config(text=f"Welcome to Inventory Management System\t\t Date: {str(date_)}\t\t Time: {str(time_)}")
-            self.lbl_clock.after(200,self.update_content)
-        except Exception as ex:
-            messagebox.showerror("Error",f"Error due to : {str(ex)}",parent=self.root)
+        setup_clock(self.lbl_clock)
 
     # ----------------- Authentication Logic -----------------
     def login(self):

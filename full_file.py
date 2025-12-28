@@ -1305,8 +1305,8 @@ from tkinter import messagebox
 from PIL import Image, ImageTk
 import time
 import sqlite3
-from billing import billClass
-from dashboard import IMS
+from bill import billClass
+from ims import IMS
 
 
 class LoginWindow:

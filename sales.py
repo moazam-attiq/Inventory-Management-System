@@ -1,8 +1,10 @@
 from tkinter import*
 from PIL import Image,ImageTk
-from tkinter import ttk,messagebox
-import sqlite3
+from tkinter import messagebox
 import os
+from src.repositories.sales_repository import list_all_sales, get_sale_content
+from src.models.sale import Sale
+
 
 class salesClass:
     def __init__(self,root):
@@ -58,38 +60,57 @@ class salesClass:
         self.show()
 #----------------------------------------------------------------------------------------------------
     def show(self):
-        del self.blll_list[:]
-        self.Sales_List.delete(0,END)
-        for i in os.listdir('bill'):
-            if i.split('.')[-1]=='txt':
-                self.Sales_List.insert(END,i)
-                self.blll_list.append(i.split('.')[0])
+        """**Long Method (1)** → 8 lines"""
+        try:
+            sales = list_all_sales()
+            self.Sales_List.delete(0, END)
+            del self.blll_list[:]
+            
+            for sale in sales:
+                self.Sales_List.insert(END, sale.display_name)
+                self.blll_list.append(sale.invoice_id)
+        except Exception as ex:
+            messagebox.showerror("Error", f"Error due to : {str(ex)}", parent=self.root)
 
-    def get_data(self,ev):
-        index_=self.Sales_List.curselection()
-        file_name=self.Sales_List.get(index_)
-        self.bill_area.delete('1.0',END)
-        fp=open(f'bill/{file_name}','r')
-        for i in fp:
-            self.bill_area.insert(END,i)
-        fp.close()
+    def get_data(self, ev):
+        """**Duplicated Code (13)** → Repository"""
+        try:
+            index_ = self.Sales_List.curselection()
+            if not index_:
+                return
+                
+            file_name = self.Sales_List.get(index_)
+            content = get_sale_content(file_name)
+            
+            self.bill_area.delete('1.0', END)
+            self.bill_area.insert('1.0', content)
+        except FileNotFoundError:
+            messagebox.showerror("Error", "Bill file not found", parent=self.root)
+        except Exception as ex:
+            messagebox.showerror("Error", f"Error due to : {str(ex)}", parent=self.root)
 
     def search(self):
-        if self.var_invoice.get()=="":
-            messagebox.showerror("Error","Invoice no. should be required",parent=self.root)
-        else:
+        """Enhanced search using repository"""
+        try:
+            if self.var_invoice.get() == "":
+                messagebox.showerror("Error", "Invoice no. should be required", parent=self.root)
+                return
+
             if self.var_invoice.get() in self.blll_list:
-                fp=open(f'bill/{self.var_invoice.get()}.txt','r')
-                self.bill_area.delete('1.0',END)
-                for i in fp:
-                    self.bill_area.insert(END,i)
-                fp.close()
+                content = get_sale_content(self.var_invoice.get())
+                self.bill_area.delete('1.0', END)
+                self.bill_area.insert('1.0', content)
             else:
-                messagebox.showerror("Error","Invalid Invoice No.",parent=self.root)
+                messagebox.showerror("Error", "Invalid Invoice No.", parent=self.root)
+        except Exception as ex:
+            messagebox.showerror("Error", f"Error due to : {str(ex)}", parent=self.root)
 
     def clear(self):
+        """Clean clear using repo refresh"""
         self.show()
-        self.bill_area.delete('1.0',END)
+        self.bill_area.delete('1.0', END)
+        self.var_invoice.set("")
+
 
 
 if __name__=="__main__":

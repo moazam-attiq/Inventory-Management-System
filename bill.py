@@ -5,6 +5,11 @@ import sqlite3
 import time
 import os
 import tempfile
+from src.services.billing_service import BillingService
+from src.widgets.calculator import Calculator
+from src.models.cart_item import CartItem
+from src.repositories.product_repository import fetch_active_products_for_billing
+
 
 class billClass:
     def __init__(self,root):
@@ -284,77 +289,90 @@ class billClass:
         self.lbl_inStock.config(text=f"In Stock [{str(row[4])}]")
         self.var_stock.set(row[4])
         
-    def add_update_cart(self):
-        if self.var_pid.get()=="":
-            messagebox.showerror("Error","Please select product from the list",parent=self.root)
-        elif self.var_qty.get()=="":
-            messagebox.showerror("Error","Quantity is required",parent=self.root)
-        elif int(self.var_qty.get())>int(self.var_stock.get()):
-            messagebox.showerror("Error","Invalid Quantity",parent=self.root)
-        else:
-            #price_cal=int(self.var_qty.get())*float(self.var_price.get())
-            #price_cal=float(price_cal)
-            price_cal=self.var_price.get()
-            cart_data=[self.var_pid.get(),self.var_pname.get(),price_cal,self.var_qty.get(),self.var_stock.get()]
-            #---------- update cart --------------
-            present="no"
-            index_=0
-            for row in self.cart_list:
-                if self.var_pid.get()==row[0]:
-                    present="yes"
-                    break
-                index_+=1
-            if present=="yes":
-                op=messagebox.askyesno("Confirm","Product already present\nDo you want to Update|Remove from the Cart List",parent=self.root)
-                if op==True:
-                    if self.var_qty.get()=="0":
-                        self.cart_list.pop(index_)
-                    else:
-                        #self.cart_list[index_][2]=price_cal
-                        self.cart_list[index_][3]=self.var_qty.get()
-            else:
-                self.cart_list.append(cart_data)
-            self.show_cart()
-            self.bill_update()
-
     def bill_update(self):
-        self.bill_amnt=0
-        self.net_pay=0
-        self.siscount=0
-        for row in self.cart_list:
-            self.bill_amnt=self.bill_amnt+(float(row[2])*int(row[3]))
-        self.discount=(self.bill_amnt*5)/100
-        self.net_pay=self.bill_amnt-self.discount
-        self.lbl_amnt.config(text=f"Bill Amnt\n{str(self.bill_amnt)}")
-        self.lbl_net_pay.config(text=f"Net Pay\n{str(self.net_pay)}")
-        self.cartTitle.config(text=f"Cart \t Total Products: [{str(len(self.cart_list))}]")
-
-    def show_cart(self):
+        """**Long Method (1)** → 8 lines"""
         try:
-            self.CartTable.delete(*self.CartTable.get_children())
-            for row in self.cart_list:
-                self.CartTable.insert('',END,values=row)
+            bill_amnt, discount, net_pay = BillingService.calculate_totals(self.cart_list)
+            self.lbl_amnt.config(text=f"Bill Amnt\n{bill_amnt}")
+            self.lbl_discount.config(text=f"Discount\n[5%]\n{discount}")
+            self.lbl_net_pay.config(text=f"Net Pay\n{net_pay}")
+            self.cartTitle.config(text=f"Cart \t Total Products: [{len(self.cart_list)}]")
+            self.bill_amnt = bill_amnt  # Keep for generate_bill
+            self.discount = discount
+            self.net_pay = net_pay
         except Exception as ex:
-            messagebox.showerror("Error",f"Error due to : {str(ex)}")
+            messagebox.showerror("Error", str(ex), parent=self.root)
+
+    def show(self):
+        """**Duplicated Code (13)** → Use product repo"""
+        try:
+            rows = fetch_active_products_for_billing()  # Raw tuples for table
+            self.product_Table.delete(*self.product_Table.get_children())
+            for row in rows:
+                self.product_Table.insert('', END, values=row)
+        except Exception as ex:
+            messagebox.showerror("Error", f"Error due to : {str(ex)}")
+
+    def add_update_cart(self):
+        """**Feature Envy (19)** → CartItem model"""
+        try:
+            if self.var_pid.get() == "":
+                return messagebox.showerror("Error", "Please select product from the list", parent=self.root)
+            if self.var_qty.get() == "" or int(self.var_qty.get()) > int(self.var_stock.get()):
+                return messagebox.showerror("Error", "Invalid Quantity", parent=self.root)
+
+            cart_item = CartItem(
+                pid=self.var_pid.get(),
+                name=self.var_pname.get(),
+                price=float(self.var_price.get()),
+                qty=int(self.var_qty.get()),
+                stock=int(self.var_stock.get())
+            )
+
+            # Update or add to cart_list
+            self._update_cart_list(cart_item)
+            self.bill_update()
+        except Exception as ex:
+            messagebox.showerror("Error", str(ex), parent=self.root)
+
+    def _update_cart_list(self, item: CartItem):
+        """Extracted private method - **Long Method (1)**"""
+        for i, cart_item in enumerate(self.cart_list):
+            if cart_item.pid == item.pid:
+                if item.qty == 0:
+                    self.cart_list.pop(i)
+                else:
+                    self.cart_list[i] = item
+                return
+        self.cart_list.append(item)
 
     def generate_bill(self):
-        if self.var_cname.get()=="" or self.var_contact.get()=="":
-            messagebox.showerror("Error",f"Customer Details are required",parent=self.root)
-        elif len(self.cart_list)==0:
-            messagebox.showerror("Error",f"Please Add product to the Cart!!!",parent=self.root)
-        else:
-            #--------- bill top -----------------
-            self.bill_top()
-            #--------- bill middle --------------
-            self.bill_middle()
-            #--------- bill bottom --------------
-            self.bill_bottom()
+        """**Long Method (1)** → Orchestrates 3 small methods"""
+        if not self._validate_bill():
+            return
 
-            fp=open(f'bill/{str(self.invoice)}.txt','w')
-            fp.write(self.txt_bill_area.get('1.0',END))
-            fp.close()
-            messagebox.showinfo("Saved","Bill has been generated",parent=self.root)
-            self.chk_print=1
+        self.invoice = BillingService.generate_invoice_id()
+        self.bill_top()
+        self.bill_middle()
+        self.bill_bottom()
+
+        self._save_bill()
+        messagebox.showinfo("Saved", "Bill has been generated", parent=self.root)
+        self.chk_print = 1
+
+    def _validate_bill(self) -> bool:
+        if not (self.var_cname.get() and self.var_contact.get()):
+            messagebox.showerror("Error", "Customer Details are required", parent=self.root)
+            return False
+        if not self.cart_list:
+            messagebox.showerror("Error", "Please Add product to the Cart!!!", parent=self.root)
+            return False
+        return True
+
+    def _save_bill(self):
+        os.makedirs('bill', exist_ok=True)
+        with open(f'bill/{self.invoice}.txt', 'w') as fp:
+            fp.write(self.txt_bill_area.get('1.0', END))
 
     def bill_top(self):
         self.invoice=int(time.strftime("%H%M%S"))+int(time.strftime("%d%m%Y"))
@@ -421,7 +439,6 @@ class billClass:
         del self.cart_list[:]
         self.clear_cart()
         self.show()
-        self.show_cart()
         self.var_cname.set("")
         self.var_contact.set("")
         self.chk_print=0

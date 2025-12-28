@@ -2,6 +2,15 @@ from tkinter import*
 from PIL import Image,ImageTk
 from tkinter import ttk,messagebox
 import sqlite3
+from src.repositories.supplier_repository import (
+    fetch_all_suppliers,
+    find_supplier_by_invoice,
+    insert_supplier,
+    update_supplier,
+    delete_supplier,
+)
+from src.models.supplier import Supplier
+
 
 class supplierClass:
     def __init__(self,root):
@@ -81,102 +90,89 @@ class supplierClass:
         self.show()
 #-----------------------------------------------------------------------------------------------------
     def add(self):
-        con=sqlite3.connect(database=r'ims.db')
-        cur=con.cursor()
         try:
-            if self.var_sup_invoice.get()=="":
-                messagebox.showerror("Error","Invoice must be required",parent=self.root)
-            else:
-                cur.execute("Select * from supplier where invoice=?",(self.var_sup_invoice.get(),))
-                row=cur.fetchone()
-                if row!=None:
-                    messagebox.showerror("Error","Invoice no. is already assigned",parent=self.root)
-                else:
-                    cur.execute("insert into supplier(invoice,name,contact,desc) values(?,?,?,?)",(
-                        self.var_sup_invoice.get(),
-                        self.var_name.get(),
-                        self.var_contact.get(),
-                        self.txt_desc.get('1.0',END),
-                    ))
-                    con.commit()
-                    messagebox.showinfo("Success","Supplier Added Successfully",parent=self.root)
-                    self.clear()
-                    self.show()
+            if self.var_sup_invoice.get() == "":
+                messagebox.showerror("Error", "Invoice must be required", parent=self.root)
+                return
+
+            if find_supplier_by_invoice(self.var_sup_invoice.get()) is not None:
+                messagebox.showerror("Error", "Invoice no. is already assigned", parent=self.root)
+                return
+
+            supplier = Supplier(
+                invoice=self.var_sup_invoice.get(),
+                name=self.var_name.get(),
+                contact=self.var_contact.get(),
+                description=self.txt_desc.get('1.0', END),
+            )
+            insert_supplier(supplier)
+            messagebox.showinfo("Success", "Supplier Added Successfully", parent=self.root)
+            self.clear()
+            self.show()
         except Exception as ex:
-            messagebox.showerror("Error",f"Error due to : {str(ex)}")
+            messagebox.showerror("Error", f"Error due to : {str(ex)}", parent=self.root)
 
     def show(self):
-        con=sqlite3.connect(database=r'ims.db')
-        cur=con.cursor()
         try:
-            cur.execute("select * from supplier")
-            rows=cur.fetchall()
+            suppliers = fetch_all_suppliers()
             self.SupplierTable.delete(*self.SupplierTable.get_children())
-            for row in rows:
-                self.SupplierTable.insert('',END,values=row)
+            for s in suppliers:
+                self.SupplierTable.insert('', END, values=(
+                    s.invoice, s.name, s.contact, s.description
+                ))
         except Exception as ex:
-            messagebox.showerror("Error",f"Error due to : {str(ex)}")
+            messagebox.showerror("Error", f"Error due to : {str(ex)}", parent=self.root)
 
-    def get_data(self,ev):
-        f=self.SupplierTable.focus()
-        content=(self.SupplierTable.item(f))
-        row=content['values']
+    def get_data(self, ev):
+        f = self.SupplierTable.focus()
+        content = self.SupplierTable.item(f)
+        row = content['values']
+        
         self.var_sup_invoice.set(row[0])
         self.var_name.set(row[1])
         self.var_contact.set(row[2])
-        self.txt_desc.delete('1.0',END)
-        self.txt_desc.insert(END,row[3])
+        self.txt_desc.delete('1.0', END)
+        self.txt_desc.insert(END, row[3])
 
     def update(self):
-        con=sqlite3.connect(database=r'ims.db')
-        cur=con.cursor()
         try:
-            if self.var_sup_invoice.get()=="":
-                messagebox.showerror("Error","Invoice must be required",parent=self.root)
-            else:
-                cur.execute("Select * from supplier where invoice=?",(self.var_sup_invoice.get(),))
-                row=cur.fetchone()
-                if row==None:
-                    messagebox.showerror("Error","Invalid Invoice No.",parent=self.root)
-                else:
-                    cur.execute("update supplier set name=?,contact=?,desc=? where invoice=?",(
-                        self.var_name.get(),
-                        self.var_contact.get(),
-                        self.txt_desc.get('1.0',END),
-                        self.var_sup_invoice.get(),
-                    ))
-                    con.commit()
-                    messagebox.showinfo("Success","Supplier Updated Successfully",parent=self.root)
-                    self.show()
+            if self.var_sup_invoice.get() == "":
+                messagebox.showerror("Error", "Invoice must be required", parent=self.root)
+                return
+
+            supplier = Supplier(
+                invoice=self.var_sup_invoice.get(),
+                name=self.var_name.get(),
+                contact=self.var_contact.get(),
+                description=self.txt_desc.get('1.0', END),
+            )
+            update_supplier(supplier)
+            messagebox.showinfo("Success", "Supplier Updated Successfully", parent=self.root)
+            self.show()
         except Exception as ex:
-            messagebox.showerror("Error",f"Error due to : {str(ex)}")
+            messagebox.showerror("Error", f"Error due to : {str(ex)}", parent=self.root)
 
     def delete(self):
-        con=sqlite3.connect(database=r'ims.db')
-        cur=con.cursor()
         try:
-            if self.var_sup_invoice.get()=="":
-                messagebox.showerror("Error","Invoice No. must be required",parent=self.root)
-            else:
-                cur.execute("Select * from supplier where invoice=?",(self.var_sup_invoice.get(),))
-                row=cur.fetchone()
-                if row==None:
-                    messagebox.showerror("Error","Invalid Invoice No.",parent=self.root)
-                else:
-                    op=messagebox.askyesno("Confirm","Do you really want to delete?",parent=self.root)
-                    if op==True:
-                        cur.execute("delete from supplier where invoice=?",(self.var_sup_invoice.get(),))
-                        con.commit()
-                        messagebox.showinfo("Delete","Supplier Deleted Successfully",parent=self.root)
-                        self.clear()
+            if self.var_sup_invoice.get() == "":
+                messagebox.showerror("Error", "Select supplier from list", parent=self.root)
+                return
+
+            op = messagebox.askyesno("Confirm", "Do you really want to delete?", parent=self.root)
+            if not op:
+                return
+
+            delete_supplier(self.var_sup_invoice.get())
+            messagebox.showinfo("Delete", "Supplier Deleted Successfully", parent=self.root)
+            self.clear()
         except Exception as ex:
-            messagebox.showerror("Error",f"Error due to : {str(ex)}")
+            messagebox.showerror("Error", f"Error due to : {str(ex)}", parent=self.root)
 
     def clear(self):
         self.var_sup_invoice.set("")
         self.var_name.set("")
         self.var_contact.set("")
-        self.txt_desc.delete('1.0',END)
+        self.txt_desc.delete('1.0', END)
         self.var_searchtxt.set("")
         self.show()
 
