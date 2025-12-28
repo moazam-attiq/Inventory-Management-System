@@ -5,7 +5,7 @@ Inventory Management System is a python based project that uses `tkinter` module
 
 ### Overview
 This project includes 8 python scripts that demonstrate how to interact with a Graphical User Interface(GUI) using `tkinter`, manage images using `pil`, date/time using `datetime`, database using `sqlite3` and fetching files from system using `os` module. In this project, there are total 8 python scripts which are connected to each other. The eight python scripts are as follows:-
-1. `dashboard.py`
+1. `ims.py`
 2. `employee.py`
 3. `supplier.py`
 4. `product.py`
