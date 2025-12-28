@@ -15,13 +15,6 @@ def fetch_all_categories():
     con.close()
     return [Category.from_row(r) for r in rows]
 
-def find_category_by_name(name: str) -> Category | None:
-    con = _get_connection()
-    cur = con.cursor()
-    cur.execute("SELECT name from category where name=?", (name,))
-    row = cur.fetchone()
-    con.close()
-    return Category.from_row(row) if row else None
 
 def insert_category(category: Category):
     con = _get_connection()
@@ -38,9 +31,27 @@ def update_category(category: Category):
     con.commit()
     con.close()
 
-def delete_category(name: str):
+def find_category_by_name(name: str) -> Category | None:
     con = _get_connection()
     cur = con.cursor()
-    cur.execute("delete from category where name=?", (name,))
-    con.commit()
+    # ✅ Changed to select * to get cid too
+    cur.execute("SELECT * from category where name=?", (name,))
+    row = cur.fetchone()
     con.close()
+    return Category.from_row(row) if row else None
+
+def delete_category(identifier: str | Category):
+    """✅ FIXED: Accepts name OR Category object"""
+    con = _get_connection()
+    cur = con.cursor()
+    try:
+        if isinstance(identifier, Category):
+            name = identifier.name
+        else:
+            name = identifier
+            
+        cur.execute("DELETE FROM category WHERE name=?", (name,))
+        con.commit()
+    finally:
+        con.close()
+

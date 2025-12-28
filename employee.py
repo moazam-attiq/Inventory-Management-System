@@ -100,7 +100,7 @@ class employeeClass:
         scrolly=Scrollbar(emp_frame,orient=VERTICAL)
         scrollx=Scrollbar(emp_frame,orient=HORIZONTAL)\
         
-        self.EmployeeTable=ttk.Treeview(emp_frame,columns=("eid","name","email","gender","contact","dob","doj","pass","utype","address","salary"),yscrollcommand=scrolly.set,xscrollcommand=scrollx.set)
+        self.EmployeeTable=ttk.Treeview(emp_frame,columns=("eid","name","email","gender","contact","dob","doj","password","utype","address","salary"),yscrollcommand=scrolly.set,xscrollcommand=scrollx.set)
         scrollx.pack(side=BOTTOM,fill=X)
         scrolly.pack(side=RIGHT,fill=Y)
         scrollx.config(command=self.EmployeeTable.xview)
@@ -112,7 +112,7 @@ class employeeClass:
         self.EmployeeTable.heading("contact",text="Contact")
         self.EmployeeTable.heading("dob",text="D.O.B")
         self.EmployeeTable.heading("doj",text="D.O.J")
-        self.EmployeeTable.heading("pass",text="Password")
+        self.EmployeeTable.heading("password",text="Password")
         self.EmployeeTable.heading("utype",text="User Type")
         self.EmployeeTable.heading("address",text="Address")
         self.EmployeeTable.heading("salary",text="Salary")
@@ -124,7 +124,7 @@ class employeeClass:
         self.EmployeeTable.column("contact",width=100)
         self.EmployeeTable.column("dob",width=100)
         self.EmployeeTable.column("doj",width=100)
-        self.EmployeeTable.column("pass",width=100)
+        self.EmployeeTable.column("password",width=100)
         self.EmployeeTable.column("utype",width=100)
         self.EmployeeTable.column("address",width=100)
         self.EmployeeTable.column("salary",width=100)
@@ -133,57 +133,24 @@ class employeeClass:
         self.EmployeeTable.bind("<ButtonRelease-1>",self.get_data)
         self.show()
 #-----------------------------------------------------------------------------------------------------
-    def add(self):
-        """**COMPLETE ADD** - Creates new employee"""
-        try:
-            if self.var_eid.get() == "":
-                messagebox.showerror("Error", "Employee ID is required", parent=self.root)
-                return
-            
-            if find_employee_by_eid(self.var_eid.get()) is not None:
-                messagebox.showerror("Error", "Employee ID already exists", parent=self.root)
-                return
-
-            employee = Employee(
-                eid=self.var_eid.get(),
-                name=self.var_name.get(),
-                email=self.var_email.get(),
-                contact=self.var_contact.get(),
-                gender=self.var_gender.get(),
-                dob=self.var_dob.get(),
-                joining=self.var_joining.get(),
-                salary=float(self.var_salary.get()),
-                password=self.var_password.get(),
-                dept=self.var_dept.get(),
-                address=self.txt_address.get('1.0', END)
-            )
-            insert_employee(employee)
-            messagebox.showinfo("Success", "Employee Added Successfully", parent=self.root)
-            self.clear()
-            self.show()
-        except ValueError as ve:
-            messagebox.showerror("Error", f"Invalid data: {str(ve)}", parent=self.root)
-        except Exception as ex:
-            messagebox.showerror("Error", f"Error due to : {str(ex)}", parent=self.root)
-
     def update(self):
         """**COMPLETE UPDATE** - Updates existing employee"""
         try:
-            if self.var_eid.get() == "":
+            if self.var_emp_id.get() == "":
                 messagebox.showerror("Error", "Please select employee from list", parent=self.root)
                 return
 
             employee = Employee(
-                eid=self.var_eid.get(),
+                eid=self.var_emp_id.get(),
                 name=self.var_name.get(),
                 email=self.var_email.get(),
                 contact=self.var_contact.get(),
                 gender=self.var_gender.get(),
                 dob=self.var_dob.get(),
-                joining=self.var_joining.get(),
+                doj=self.var_doj.get(),
                 salary=float(self.var_salary.get()),
-                password=self.var_password.get(),
-                dept=self.var_dept.get(),
+                password=self.var_pass.get(),
+                utype=self.var_utype.get(),
                 address=self.txt_address.get('1.0', END)
             )
             update_employee(employee)
@@ -197,64 +164,103 @@ class employeeClass:
     def delete(self):
         """**COMPLETE DELETE** - Deletes selected employee"""
         try:
-            if self.var_eid.get() == "":
+            if self.var_emp_id.get() == "":
                 messagebox.showerror("Error", "Select employee from the list", parent=self.root)
                 return
 
             op = messagebox.askyesno("Confirm", "Do you really want to delete this employee?", parent=self.root)
             if op:
-                delete_employee(self.var_eid.get())
+                delete_employee(self.var_emp_id.get())
                 messagebox.showinfo("Delete", "Employee Deleted Successfully", parent=self.root)
                 self.clear()
         except Exception as ex:
             messagebox.showerror("Error", f"Error due to : {str(ex)}", parent=self.root)
 
     def show(self):
-        """**COMPLETE SHOW** - Loads all employees into table"""
+        """✅ FIXED: Matches 11-column table"""
         try:
             employees = fetch_all_employees()
             self.EmployeeTable.delete(*self.EmployeeTable.get_children())
             for e in employees:
-                # Table expects: (eid, name, email, contact, gender, dob, joining, salary, dept)
+                # ✅ 11 values for 11 columns
                 table_row = (
-                    e.eid, e.name, e.email, e.contact, e.gender, 
-                    e.dob, e.joining, e.salary, e.dept
+                    e.eid, e.name, e.email, e.gender, e.contact,
+                    e.dob, e.doj, e.password, e.utype, e.address, e.salary
                 )
                 self.EmployeeTable.insert('', END, values=table_row)
         except Exception as ex:
-            messagebox.showerror("Error", f"Error due to : {str(ex)}", parent=self.root)
+            messagebox.showerror("Error", f"Error: {str(ex)}", parent=self.root)
 
     def get_data(self, ev):
-        """**COMPLETE GET_DATA** - Populates form from table selection"""
-        f = self.EmployeeTable.focus()
-        content = self.EmployeeTable.item(f)
-        row = content['values']
-        
-        self.var_eid.set(row[0])
-        self.var_name.set(row[1])
-        self.var_email.set(row[2])
-        self.var_contact.set(row[3])
-        self.var_gender.set(row[4])
-        self.var_dob.set(row[5])
-        self.var_joining.set(row[6])
-        self.var_salary.set(str(row[7]))
-        self.var_dept.set(row[8])
-        # address would need extra column or separate fetch if needed
+        """✅ FIXED: Matches GUI variables"""
+        try:
+            f = self.EmployeeTable.focus()
+            content = self.EmployeeTable.item(f)
+            row = content['values']
+            print(row)
+            self.var_emp_id.set(row[0])      # eid
+            self.var_name.set(row[1])        # name  
+            self.var_email.set(row[2])       # email
+            self.var_gender.set(row[3])      # gender
+            self.var_contact.set(row[4])     # contact
+            self.var_dob.set(row[5])         # dob
+            self.var_doj.set(row[6])         # doj
+            self.var_pass.set(row[7])        # password
+            self.var_utype.set(row[8])       # utype
+            self.var_salary.set(str(row[10]))# salary
+            # address needs separate handling or table column
+        except Exception as ex:
+            messagebox.showerror("Error", f"get_data error: {str(ex)}", parent=self.root)
+
+    def add(self):
+        """✅ FIXED: Uses correct GUI variable names"""
+        try:
+            if self.var_emp_id.get() == "":  # ✅ var_emp_id not var_emp_id
+                messagebox.showerror("Error", "Employee ID is required", parent=self.root)
+                return
+            
+            if find_employee_by_eid(self.var_emp_id.get()):  # ✅ var_emp_id
+                messagebox.showerror("Error", "Employee ID already exists", parent=self.root)
+                return
+
+            employee = Employee(
+                eid=self.var_emp_id.get(),      # ✅ GUI matches model
+                name=self.var_name.get(),
+                email=self.var_email.get(),
+                contact=self.var_contact.get(),
+                gender=self.var_gender.get(),
+                dob=self.var_dob.get(),
+                doj=self.var_doj.get(),         # ✅ doj not joining
+                salary=float(self.var_salary.get() or 0),
+                password=self.var_pass.get(),   # ✅ var_pass
+                utype=self.var_utype.get(),     # ✅ var_utype
+                address=self.txt_address.get('1.0', END)
+            )
+            insert_employee(employee)
+            messagebox.showinfo("Success", "Employee Added Successfully", parent=self.root)
+            self.clear()
+            self.show()
+        except ValueError as ve:
+            messagebox.showerror("Error", f"Invalid number (salary): {str(ve)}", parent=self.root)
+        except Exception as ex:
+            messagebox.showerror("Error", f"Add failed: {str(ex)}", parent=self.root)
 
     def clear(self):
+        """✅ FIXED: Matches all GUI variables"""
         self.var_emp_id.set("")
         self.var_name.set("")
         self.var_email.set("")
-        self.var_gender.set("Select")
         self.var_contact.set("")
+        self.var_gender.set("Select")
         self.var_dob.set("")
         self.var_doj.set("")
         self.var_pass.set("")
         self.var_utype.set("Admin")
-        self.txt_address.delete('1.0',END)
         self.var_salary.set("")
         self.var_searchby.set("Select")
         self.var_searchtxt.set("")
+        if self.txt_address:
+            self.txt_address.delete('1.0', END)
         self.show()
 
     def search(self):

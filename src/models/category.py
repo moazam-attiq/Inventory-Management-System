@@ -1,11 +1,12 @@
-# models/category.py
+# src/models/category.py - UPDATED
 from dataclasses import dataclass
 
 @dataclass
 class Category:
-    name: str
+    cid: int | None = None  # ✅ Added for table display
+    name: str = ""
 
     @classmethod
     def from_row(cls, row):
-        # row: (name,)
-        return cls(name=row[0])
+        # row: (cid, name) from "select * from category"
+        return cls(cid=row[0], name=row[1])  # ✅ Now handles both columns

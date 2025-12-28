@@ -7,27 +7,26 @@ class SearchField(Enum):
     NAME = "name"
     CONTACT = "contact"
 
+# models/employee.py - FIXED FIELD NAMES
 @dataclass
 class Employee:
-    eid: str
+    eid: str           # ✅ Matches GUI var_emp_id
     name: str
     email: str
     contact: str
     gender: str
     dob: str
-    joining: str
+    doj: str           # ✅ Matches GUI var_doj  
     salary: float
-    password: str
-    dept: str
+    password: str      # ✅ Matches GUI var_pass
+    utype: str         # ✅ Matches GUI var_utype
     address: str
 
     @classmethod
     def from_row(cls, row):
-        return cls(*row)
-
-    def search_key(self, field: SearchField) -> str:
-        """**Message Chains (20)** → Single method"""
-        match field:
-            case SearchField.EMAIL: return self.email
-            case SearchField.NAME: return self.name
-            case SearchField.CONTACT: return self.contact
+        # ✅ Matches exact DB order
+        return cls(
+            eid=row[0], name=row[1], email=row[2], gender=row[3],
+            contact=row[4], dob=row[5], doj=row[6], password=row[7],
+            utype=row[8], address=row[9], salary=row[10]
+        )

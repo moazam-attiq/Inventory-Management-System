@@ -95,3 +95,11 @@ def search_products(by_label: str, text: str):
     rows = cur.fetchall()
     con.close()
     return [Product.from_row(r) for r in rows]
+
+def update_product_qty_and_status(pid: str, new_qty: int, status: str):
+    """Update product stock after billing"""
+    con = _get_connection()
+    cur = con.cursor()
+    cur.execute("UPDATE product SET qty=?, status=? WHERE pid=?", (new_qty, status, pid))
+    con.commit()
+    con.close()
