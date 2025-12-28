@@ -2,6 +2,15 @@ from tkinter import*
 from PIL import Image,ImageTk
 from tkinter import ttk,messagebox
 import sqlite3
+from src.repositories.category_repository import (
+    fetch_all_categories,
+    find_category_by_name,
+    insert_category,
+    update_category,
+    delete_category,
+)
+from src.models.category import Category
+
 
 class categoryClass:
     def __init__(self,root):
@@ -14,12 +23,12 @@ class categoryClass:
 
         #------------ variables -------------
         self.var_cat_id=StringVar()
-        self.var_name=StringVar()
+        self.var_cat_name=StringVar()
         #--------------- title ---------------------
         lbl_title=Label(self.root,text="Manage Product Category",font=("goudy old style",30),bg="#184a45",fg="white",bd=3,relief=RIDGE).pack(side=TOP,fill=X,padx=10,pady=20)
         
         lbl_mame=Label(self.root,text="Enter Category Name",font=("goudy old style",30),bg="white").place(x=50,y=100)
-        txt_mame=Entry(self.root,textvariable=self.var_name,bg="lightyellow",font=("goudy old style",18)).place(x=50,y=170,width=300)
+        txt_mame=Entry(self.root,textvariable=self.var_cat_name,bg="lightyellow",font=("goudy old style",18)).place(x=50,y=170,width=300)
 
         btn_add=Button(self.root,text="ADD",command=self.add,font=("goudy old style",15),bg="#4caf50",fg="white",cursor="hand2").place(x=360,y=170,width=150,height=30)
         btn_delete=Button(self.root,text="Delete",command=self.delete,font=("goudy old style",15),bg="red",fg="white",cursor="hand2").place(x=520,y=170,width=150,height=30)
@@ -59,43 +68,65 @@ class categoryClass:
         self.lbl_im2=Label(self.root,image=self.im2,bd=2,relief=RAISED)
         self.lbl_im2.place(x=580,y=220)
 #----------------------------------------------------------------------------------
-    def add(self):
-        con=sqlite3.connect(database=r'ims.db')
-        cur=con.cursor()
-        try:
-            if self.var_name.get()=="":
-                messagebox.showerror("Error","Category Name must be required",parent=self.root)
-            else:
-                cur.execute("Select * from category where name=?",(self.var_name.get(),))
-                row=cur.fetchone()
-                if row!=None:
-                    messagebox.showerror("Error","Category already present",parent=self.root)
-                else:
-                    cur.execute("insert into category(name) values(?)",(
-                        self.var_name.get(),
-                    ))
-                    con.commit()
-                    messagebox.showinfo("Success","Category Added Successfully",parent=self.root)
-                    self.clear()
-                    self.show()
-        except Exception as ex:
-            messagebox.showerror("Error",f"Error due to : {str(ex)}")
-
     def show(self):
-        con=sqlite3.connect(database=r'ims.db')
-        cur=con.cursor()
         try:
-            cur.execute("select * from category")
-            rows=cur.fetchall()
+            categories = fetch_all_categories()
             self.CategoryTable.delete(*self.CategoryTable.get_children())
-            for row in rows:
-                self.CategoryTable.insert('',END,values=row)
+            for c in categories:
+                self.CategoryTable.insert('', END, values=(c.name,))
         except Exception as ex:
-            messagebox.showerror("Error",f"Error due to : {str(ex)}")
+            messagebox.showerror("Error", f"Error due to : {str(ex)}", parent=self.root)
+
+    def add(self):
+        try:
+            if self.var_cat_name.get() == "":
+                messagebox.showerror("Error", "Name is required", parent=self.root)
+                return
+
+            if find_category_by_name(self.var_cat_name.get()) is not None:
+                messagebox.showerror("Error", "Category already exists", parent=self.root)
+                return
+
+            category = Category(name=self.var_cat_name.get())
+            insert_category(category)
+            messagebox.showinfo("Success", "Category Added Successfully", parent=self.root)
+            self.clear()
+            self.show()
+        except Exception as ex:
+            messagebox.showerror("Error", f"Error due to : {str(ex)}", parent=self.root)
+
+    def update(self):
+        try:
+            if self.var_cat_name.get() == "":
+                messagebox.showerror("Error", "Select category from list", parent=self.root)
+                return
+
+            category = Category(name=self.var_cat_name.get())
+            update_category(category)
+            messagebox.showinfo("Success", "Category Updated Successfully", parent=self.root)
+            self.show()
+        except Exception as ex:
+            messagebox.showerror("Error", f"Error due to : {str(ex)}", parent=self.root)
+
+    def delete(self):
+        try:
+            if self.var_cat_name.get() == "":
+                messagebox.showerror("Error", "Select category from list", parent=self.root)
+                return
+
+            op = messagebox.askyesno("Confirm", "Do you really want to delete?", parent=self.root)
+            if not op:
+                return
+
+            delete_category(self.var_cat_name.get())
+            messagebox.showinfo("Delete", "Category Deleted Successfully", parent=self.root)
+            self.clear()
+        except Exception as ex:
+            messagebox.showerror("Error", f"Error due to : {str(ex)}", parent=self.root)
 
     
     def clear(self):
-        self.var_name.set("")
+        self.var_cat_name.set("")
         self.show()
 
     def get_data(self,ev):
@@ -103,31 +134,7 @@ class categoryClass:
         content=(self.CategoryTable.item(f))
         row=content['values']
         self.var_cat_id.set(row[0])
-        self.var_name.set(row[1])
-    
-    def delete(self):
-        con=sqlite3.connect(database=r'ims.db')
-        cur=con.cursor()
-        try:
-            if self.var_cat_id.get()=="":
-                messagebox.showerror("Error","Category name must be required",parent=self.root)
-            else:
-                cur.execute("Select * from category where cid=?",(self.var_cat_id.get(),))
-                row=cur.fetchone()
-                if row==None:
-                    messagebox.showerror("Error","Invalid Category Name",parent=self.root)
-                else:
-                    op=messagebox.askyesno("Confirm","Do you really want to delete?",parent=self.root)
-                    if op==True:
-                        cur.execute("delete from category where cid=?",(self.var_cat_id.get(),))
-                        con.commit()
-                        messagebox.showinfo("Delete","Category Deleted Successfully",parent=self.root)
-                        self.clear()
-                        self.var_cat_id.set("")
-                        self.var_name.set("")
-        except Exception as ex:
-            messagebox.showerror("Error",f"Error due to : {str(ex)}")
-
+        self.var_cat_name.set(row[1])
 
 
 if __name__=="__main__":
