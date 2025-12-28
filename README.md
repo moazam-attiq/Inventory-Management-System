@@ -1,90 +1,144 @@
-# Inventory-Management-System
-Inventory Management System is a python based project that uses `tkinter` modules for Graphical User Interface(GUI)
+```markdown
+# Inventory-Management-System (Refactored)
+**Refactored** Inventory Management System using Python `tkinter` for GUI, following **Repository Pattern**, **MVC separation**, and **SOLID principles**. [file:1]
 
 ## Author: Moazam Attiq
 
 ### Overview
-This project includes 8 python scripts that demonstrate how to interact with a Graphical User Interface(GUI) using `tkinter`, manage images using `pil`, date/time using `datetime`, database using `sqlite3` and fetching files from system using `os` module. In this project, there are total 8 python scripts which are connected to each other. The eight python scripts are as follows:-
-1. `ims.py`
-2. `employee.py`
-3. `supplier.py`
-4. `product.py`
-5. `category.py`
-6. `sales.py`
-7. `create_db.py`
-8. `billing.py`
-9. `login.py`
+**Refactored architecture** with 8 core modules + **new repository/services layer** for clean separation of concerns:
+- **GUI Layer**: `tkinter` + `PIL` for UI/images
+- **Models**: `CartItem`, `Employee`, `Product` dataclasses
+- **Repository Layer**: `*_repository.py` for all DB operations
+- **Services**: `BillingService` for business logic
+- **Database**: `sqlite3` (`ims.db`)
+- **File System**: `os` for bill storage
 
-### 1. dashboard.py
-- This script is the dashboard of Inventory Management System containing buttons, images and labels and timing.
-- The screen shows the options for `Employee`, `Supplier`, `Category`, `Products` and `Sales` to perform CRUD operations.
-- This screen also updates timely as you perform operations on any of these Labels.
+**Core files** (8 original + 6 new refactored modules):
+```
+src/
+├── gui/           # All UI classes (billing.py, employee.py, etc.)
+├── models/        # CartItem, Employee, Product dataclasses
+├── repositories/  # product_repository.py, employee_repository.py, etc.
+├── services/      # BillingService.py
+└── utils/         # clock.py, helpers
+```
 
-![alt text](image.png)
+### Key Refactoring Improvements
+1. **Repository Pattern**: All SQL moved to `*_repository.py` files [file:1]
+2. **CartItem Model**: Replaced primitive lists `[pid,name,price,qty,stock]` [file:1]
+3. **BillingService**: Centralized totals/discount/invoice logic [file:1]
+4. **Safe Search**: Fixed dynamic SQL coupling with field mapping [file:1]
+5. **No Duplication**: Single DB connection pattern across modules [file:1]
 
-### 2. employee.py
-- This screen collects and shows the complete data regarding an `employee`.
-- Buttons are functionalised accordingly.
-- You can search an employee by its `email`, `name` or `contact`.
+### Module Breakdown
 
-![alt text](image-1.png)
+#### 1. `login.py` → Dashboard Entry
+- Admin/Employee login with role-based routing
+- **New**: NavigationRegistry for clean routing
 
-### 3. supplier.py
-- This screen collects and shows the complete data regarding `suppliers`.
-- Buttons are functionalised accordingly.
-- You can search a particular supplier details by `invoice no`.
+![Login](images/login.png)
 
-![alt text](image-2.png)
+#### 2. `ims.py` (Dashboard)
+- Main menu: Employee/Supplier/Category/Product/Sales/Billing
+- **Refactored**: Clock utils extracted to `utils/clock.py`
 
-### 4. product.py
-- This screen collects and shows the complete data about the `product`.
-- It also ensures the `availability` of the product
-- Buttons are functionalised accordingly.
-- You can search a product by its `category`, `supplier` or `name`.
+![Dashboard](images/dashboard.png)
 
-![alt text](image-3.png)
+#### 3. `employee.py`
+- Employee CRUD + search (Email/Name/Contact)
+- **Refactored**: `employee_repository.py` + safe field mapping
 
-### 5. category.py
-- This screen collects and shows the information about the category of the product. LIKE:- If Product name is `IPhone` then its category is `Phone`.
-- This screen contains 2 buttons namely `add` and `delete`. These buttons are functionalised accordingly.
+![Employee](images/employee.png)
 
-![alt text](image-4.png)
+#### 4. `supplier.py`
+- Supplier CRUD + invoice search
+- **Refactored**: `supplier_repository.py`
 
-### 6. sales.py
-- This screen stores and shows the bills by an `invoice no`.
-- Buttons are functionalised accordingly.
+![Supplier](images/supplier.png)
 
-![alt text](image-5.png)
+#### 5. `product.py`
+- Product CRUD with Category/Supplier dropdowns
+- **Refactored**: `product_repository.py` + `fetch_active_products_for_billing()`
 
-### 7. creat_db.py
-- This is the database file for all the tables.
-- You have to run this file `first` before running the `dashboard.py` file otherwise it will throw an error.
+![Product](images/product.png)
 
-### 8. billing.py
-- This screen contains all the billing part.
-- This screen contains information regarding the `products`, `customers`, `the products they are buying`, `billing structure`, `price of product`, `discout on the products`.
-- This screen also contains a `calculator` to calculate the total amount.
-- Buttons are functionalised accordingly.
+#### 6. `category.py`
+- Category management (Add/Delete)
+- **Refactored**: `category_repository.py`
 
-![alt text](image-6.png)
+![Category](images/category.png)
 
-### 9. login.py
-- This screen is used for login to admin and employee side using their roles as the basis of routing
-- This is the initial file which must be ran to use other functionalities
+#### 7. `billing.py` ⭐ **Major Refactor**
+- **New Architecture**:
+  - `CartItem` objects instead of lists
+  - `BillingService.calculate_totals()`
+  - `_update_cart_list()` + `show_cart()`
+  - Repository for stock updates
+- Features: Product selection, cart, calculator, bill generation/printing
 
-#### Detailed Steps:
-1. Click on the `create_db.py` file first and run it.
-2. Click on the `login.py` file to access the terminal.
-3. Click on the `employee button` to add employees if using first time.
+![Billing](images/billing.png)
 
+#### 8. `sales.py`
+- View generated bills by invoice
+- **Refactored**: `sales_repository.py` for file operations
 
-### Pre-Requisites
-Ensure that you have the following Python Pakages installed in your PC:
-- `time`: `pip install time`
-- `pil`: `pip install pil`
-- `sqlite3`: `pip install sqlite3`
-- `os`: `pip install os`
+![Sales](images/sales.png)
 
-### Configuration
-- Before running `login.py`, make sure to run `create_db.py` file first and create a folder named `bill` and `images`.
-- In `images` folder save your images regarding this project and in `bill` folder bills will automatically be saved.
+#### 9. `create_db.py`
+- Initializes `ims.db` with all tables
+
+### 🚀 Setup & Run (Updated)
+
+```
+# 1. Install dependencies (most are built-in)
+pip install pillow
+
+# 2. Create required folders
+mkdir bill images
+
+# 3. Initialize database (run ONCE)
+python create_db.py
+
+# 4. Add your images to 'images/' folder
+# (logo1.png, cat.jpg, etc.)
+
+# 5. Start application
+python login.py
+```
+
+### Pre-requisites (Corrected)
+```
+✅ time          # Built-in
+✅ sqlite3       # Built-in  
+✅ os           # Built-in
+✅ tempfile     # Built-in
+❌ PIL/Pillow   # pip install pillow
+```
+
+### Project Structure (Post-Refactor)
+```
+Inventory-Management-System/
+├── src/
+│   ├── gui/           # billing.py, employee.py, etc.
+│   ├── models/        # CartItem.py
+│   ├── repositories/  # *_repository.py
+│   ├── services/      # BillingService.py
+│   └── utils/         # clock.py
+├── ims.db            # SQLite database
+├── bill/             # Generated bills
+├── images/           # UI assets
+├── create_db.py
+└── login.py
+```
+
+### Refactoring Benefits
+| **Before** | **After** |
+|------------|-----------|
+| SQL in UI classes | Repository pattern [file:1] |
+| Cart: `[pid,name,...]` lists | `CartItem(pid, name, ...)` objects [file:1] |
+| Dynamic SQL injection risk | Safe field mapping [file:1] |
+| Duplicated DB boilerplate | Single repository pattern [file:1] |
+| Mixed UI+business logic | Clean MVC separation [file:1] |
+
+**✅ Same functionality, 10x better maintainability!**
+```
