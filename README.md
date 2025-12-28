@@ -1,6 +1,5 @@
-```markdown
 # Inventory-Management-System (Refactored)
-**Refactored** Inventory Management System using Python `tkinter` for GUI, following **Repository Pattern**, **MVC separation**, and **SOLID principles**. [file:1]
+**Refactored** Inventory Management System using Python `tkinter` for GUI, following **Repository Pattern**, **MVC separation**, and **SOLID principles**.
 
 ## Author: Moazam Attiq
 
@@ -24,11 +23,11 @@ src/
 ```
 
 ### Key Refactoring Improvements
-1. **Repository Pattern**: All SQL moved to `*_repository.py` files [file:1]
-2. **CartItem Model**: Replaced primitive lists `[pid,name,price,qty,stock]` [file:1]
-3. **BillingService**: Centralized totals/discount/invoice logic [file:1]
-4. **Safe Search**: Fixed dynamic SQL coupling with field mapping [file:1]
-5. **No Duplication**: Single DB connection pattern across modules [file:1]
+1. **Repository Pattern**: All SQL moved to `*_repository.py` files
+2. **CartItem Model**: Replaced primitive lists `[pid,name,price,qty,stock]`
+3. **BillingService**: Centralized totals/discount/invoice logic
+4. **Safe Search**: Fixed dynamic SQL coupling with field mapping
+5. **No Duplication**: Single DB connection pattern across modules
 
 ### Module Breakdown
 
@@ -88,8 +87,7 @@ src/
 - Initializes `ims.db` with all tables
 
 ### 🚀 Setup & Run (Updated)
-
-```
+```bash
 # 1. Install dependencies (most are built-in)
 pip install pillow
 
@@ -110,9 +108,9 @@ python login.py
 ```
 ✅ time          # Built-in
 ✅ sqlite3       # Built-in  
-✅ os           # Built-in
-✅ tempfile     # Built-in
-❌ PIL/Pillow   # pip install pillow
+✅ os            # Built-in
+✅ tempfile      # Built-in
+❌ PIL/Pillow    # pip install pillow
 ```
 
 ### Project Structure (Post-Refactor)
@@ -134,11 +132,10 @@ Inventory-Management-System/
 ### Refactoring Benefits
 | **Before** | **After** |
 |------------|-----------|
-| SQL in UI classes | Repository pattern [file:1] |
-| Cart: `[pid,name,...]` lists | `CartItem(pid, name, ...)` objects [file:1] |
-| Dynamic SQL injection risk | Safe field mapping [file:1] |
-| Duplicated DB boilerplate | Single repository pattern [file:1] |
-| Mixed UI+business logic | Clean MVC separation [file:1] |
+| SQL in UI classes | Repository pattern |
+| Cart: `[pid,name,...]` lists | `CartItem(pid, name, ...)` objects |
+| Dynamic SQL injection risk | Safe field mapping |
+| Duplicated DB boilerplate | Single repository pattern |
+| Mixed UI+business logic | Clean MVC separation |
 
 **✅ Same functionality, 10x better maintainability!**
-```
